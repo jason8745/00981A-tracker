@@ -1,7 +1,7 @@
 [project]
 name = "00981a-tracker"
 version = "0.1.0"
-description = "Add your description here"
+description = "Daily tracker for 00981A ETF holdings, auto-updated via GitHub Actions"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
