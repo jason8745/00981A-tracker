@@ -273,9 +273,9 @@ def test_update_readme_holdings_table_has_all_stocks(tmp_path):
 # Minimal HTML fixture that mimics the real page's data-content attribute
 SAMPLE_HTML = (
     '<div id="DataAsset" data-content=\'['
-    '{"FundCode":"49YTW","AssetCode":"NAV","AssetName":"淨資產","Value":286439360959.0,"Details":null},'
-    '{"FundCode":"49YTW","AssetCode":"P_UNIT","AssetName":"每單位淨值","Value":31.48,"Details":null},'
-    '{"FundCode":"49YTW","AssetCode":"ST","AssetName":"股票","Value":276222913420.0,"Details":['
+    '{"FundCode":"49YTW","AssetCode":"NAV","AssetName":"淨資產","Value":286439360959.0,"Details":null,"EditDate":"2026-05-26T16:30:28"},'
+    '{"FundCode":"49YTW","AssetCode":"P_UNIT","AssetName":"每單位淨值","Value":31.48,"Details":null,"EditDate":"2026-05-26T16:30:28"},'
+    '{"FundCode":"49YTW","AssetCode":"ST","AssetName":"股票","Value":276222913420.0,"EditDate":"2026-05-26T16:30:28","Details":['
     '{"DetailCode":"2330","DetailName":"台積電","Share":11657000.0,"Amount":26461390000.0,"NavRate":9.24},'
     '{"DetailCode":"2454","DetailName":"聯發科","Share":4263000.0,"Amount":18181695000.0,"NavRate":6.35}'
     ']}]\'>'
@@ -312,7 +312,6 @@ def test_parse_holdings_first_stock():
     assert h["weight"] == 9.24
 
 
-def test_parse_holdings_date_field_present():
+def test_parse_holdings_date_from_html():
     result = parse_holdings_from_html(SAMPLE_HTML)
-    # date is set by caller via today's date — parse returns it as empty string or today
-    assert "date" in result
+    assert result["date"] == "2026-05-26"

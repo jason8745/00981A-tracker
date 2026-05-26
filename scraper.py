@@ -183,7 +183,7 @@ URL = "https://www.ezmoney.com.tw/ETF/Fund/Info?fundCode=49YTW"
 _DATA_ASSET_RE = re.compile(r"id=\"DataAsset\"\s+data-content='([^']+)'")
 
 
-def parse_holdings_from_html(html: str, today: str = "") -> dict:
+def parse_holdings_from_html(html: str) -> dict:
     """Extract fund holdings from raw HTML. Pure function — no network calls."""
     m = _DATA_ASSET_RE.search(html)
     if not m:
@@ -195,6 +195,10 @@ def parse_holdings_from_html(html: str, today: str = "") -> dict:
     nav = asset_map.get("P_UNIT", {}).get("Value", 0.0)
     total_asset = asset_map.get("NAV", {}).get("Value", 0)
     details = asset_map.get("ST", {}).get("Details") or []
+
+    # Extract data date from EditDate (e.g. "2026-05-26T16:30:28") — take date part only
+    edit_date = asset_map.get("ST", {}).get("EditDate") or asset_map.get("P_UNIT", {}).get("EditDate", "")
+    data_date = edit_date[:10] if edit_date else ""
 
     holdings = [
         {
@@ -210,20 +214,20 @@ def parse_holdings_from_html(html: str, today: str = "") -> dict:
 
     return {
         "fund_code": "00981A",
-        "date": today,
+        "date": data_date,
         "nav": nav,
         "total_asset": int(total_asset),
         "holdings": holdings,
     }
 
 
-def fetch_holdings(today: str, max_retries: int = 3) -> dict:
+def fetch_holdings(max_retries: int = 3) -> dict:
     """Fetch holdings from ezmoney with retry. Calls sys.exit(1) on failure."""
     from scrapling.fetchers import Fetcher
     for attempt in range(max_retries):
         try:
             page = Fetcher.get(URL, impersonate="chrome", timeout=30)
-            return parse_holdings_from_html(page.html_content, today=today)
+            return parse_holdings_from_html(page.html_content)
         except Exception as e:
             wait = 2 ** attempt  # 1s, 2s, 4s
             print(f"[attempt {attempt + 1}/{max_retries}] Error: {e}. Retrying in {wait}s...")
@@ -234,19 +238,19 @@ def fetch_holdings(today: str, max_retries: int = 3) -> dict:
 
 
 def main():
-    today = date.today().isoformat()
-    print(f"Fetching holdings for {today}...")
-    data = fetch_holdings(today=today)
-    print(f"Fetched {len(data['holdings'])} holdings. NAV={data['nav']}")
+    print("Fetching holdings...")
+    data = fetch_holdings()
+    data_date = data["date"]
+    print(f"Fetched {len(data['holdings'])} holdings. Date={data_date} NAV={data['nav']}")
 
-    prev = load_previous(today)
+    prev = load_previous(data_date)
     diff = compute_diff(prev, data)
 
     print(f"Diff: {len(diff['added'])} added, {len(diff['increased'])} increased, "
           f"{len(diff['decreased'])} decreased, {len(diff['removed'])} removed")
 
-    save_data(data, today)
-    print(f"Saved data/{today}.json and data/{today}.csv")
+    save_data(data, data_date)
+    print(f"Saved data/{data_date}.json and data/{data_date}.csv")
 
     update_readme(data, diff)
     print("README.md updated.")
