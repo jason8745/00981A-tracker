@@ -5,7 +5,7 @@ import re
 import shutil
 import sys
 import time
-from datetime import date
+from datetime import date, datetime, timezone, timedelta
 from pathlib import Path
 
 def compute_diff(prev: dict | None, curr: dict) -> dict:
@@ -96,17 +96,18 @@ def load_previous(today: str, data_dir: Path = Path("data")) -> dict | None:
     return json.loads(candidates[0].read_text(encoding="utf-8"))
 
 
-def _build_daily_report(data: dict, diff: dict) -> str:
+def _build_daily_report(data: dict, diff: dict, updated_at: str = "") -> str:
     total_asset_yi = data["total_asset"] / 1e8
     n_added = len(diff["added"])
     n_removed = len(diff["removed"])
     n_increased = len(diff["increased"])
     n_decreased = len(diff["decreased"])
 
+    updated_note = f" · 更新於 {updated_at}" if updated_at else ""
     lines = [
         f"## 主動統一台股增長 (00981A) · 主動操作日報",
         f"",
-        f"**資料日期：{data['date']}** | 基金規模：{total_asset_yi:,.2f} 億 | 每單位淨值：{data['nav']}",
+        f"**資料日期：{data['date']}** | 基金規模：{total_asset_yi:,.2f} 億 | 每單位淨值：{data['nav']}{updated_note}",
         f"",
         f"| 新增持股 | 主動加碼 | 主動減碼 | 刪除持股 |",
         f"|:---:|:---:|:---:|:---:|",
@@ -159,12 +160,12 @@ def _build_holdings_table(data: dict) -> str:
     return "\n".join(lines)
 
 
-def update_readme(data: dict, diff: dict, readme_path: Path = Path("README.md")) -> None:
+def update_readme(data: dict, diff: dict, updated_at: str = "", readme_path: Path = Path("README.md")) -> None:
     """Replace content between marker comments in README.md."""
     readme_path = Path(readme_path)
     content = readme_path.read_text(encoding="utf-8")
 
-    daily_report = _build_daily_report(data, diff)
+    daily_report = _build_daily_report(data, diff, updated_at)
     holdings_table = _build_holdings_table(data)
 
     def replace_block(text: str, start_marker: str, end_marker: str, new_content: str) -> str:
@@ -238,6 +239,9 @@ def fetch_holdings(max_retries: int = 3) -> dict:
 
 
 def main():
+    TW = timezone(timedelta(hours=8))
+    updated_at = datetime.now(TW).strftime("%Y-%m-%d %H:%M")
+
     print("Fetching holdings...")
     data = fetch_holdings()
     data_date = data["date"]
@@ -252,7 +256,7 @@ def main():
     save_data(data, data_date)
     print(f"Saved data/{data_date}.json and data/{data_date}.csv")
 
-    update_readme(data, diff)
+    update_readme(data, diff, updated_at=updated_at)
     print("README.md updated.")
 
 
