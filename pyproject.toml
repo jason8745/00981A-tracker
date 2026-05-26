@@ -1,0 +1,14 @@
+[project]
+name = "00981a-tracker"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "scrapling[fetchers]>=0.4.8",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+]
